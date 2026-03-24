@@ -1,16 +1,34 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
-load_dotenv()
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore"
+    )
 
-class Config:
-    LLM_PROVIDER = "ollama"                    # 新增：强制本地
-    CHAT_MODEL = "qwen2:7b"                    # Ollama模型
-    EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+    # LLM 配置
+    OLLAMA_MODEL: str = "qwen2:7b"
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    TEMPERATURE: float = 0.3
 
-    CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
-    CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
-    TOP_K = int(os.getenv("TOP_K", "4"))
-    USE_HYDE = os.getenv("USE_HYDE", "true").lower() == "true"
+    # Embedding
+    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
 
-    VECTORSTORE_PATH = os.getenv("VECTORSTORE_PATH", "./chroma_db")
+    # RAG 参数
+    CHUNK_SIZE: int = 500
+    CHUNK_OVERLAP: int = 50
+    TOP_K: int = 4
+    USE_HYDE: bool = True
+
+    # 向量库
+    VECTORSTORE_PATH: str = "./chroma_db"
+
+    # 安全
+    API_KEY: Optional[str] = None
+
+    # 日志
+    LOG_LEVEL: str = "INFO"
+
+settings = Settings()

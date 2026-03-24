@@ -1,10 +1,14 @@
 from langchain_ollama import ChatOllama
 from langchain.prompts import PromptTemplate
-from src.config import Config
+from src.config import settings
 
 class HyDE:
     def __init__(self):
-        self.llm = ChatOllama(model=Config.CHAT_MODEL, temperature=0.2)
+        self.llm = ChatOllama(
+            model=settings.OLLAMA_MODEL,
+            base_url=settings.OLLAMA_BASE_URL,
+            temperature=0.2
+        )
 
     def generate_hypothetical_document(self, question: str) -> str:
         prompt = PromptTemplate(

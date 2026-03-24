@@ -1,26 +1,36 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import tempfile
 import os
+import logging
 
 from src.rag_chain import RAGChain
 from src.document_loader import DocumentProcessor
 from src.vector_store import VectorStoreManager
-from src.config import Config
+from src.config import settings
 
-app = FastAPI(title="AI智能客服系统", version="1.0.0")
+# 日志配置
+logging.basicConfig(level=settings.LOG_LEVEL)
+logger = logging.getLogger("api")
 
-# CORS配置
+app = FastAPI(title="华科制造智能售后客服系统", version="2.0.0", docs_url="/docs")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 全局实例
+# API Key 认证（企业安全演示）
+def verify_api_key(x_api_key: Optional[str] = Header(None)):
+    if settings.API_KEY and x_api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail="无效的 API Key")
+    return True
+
 rag_chain = RAGChain()
 
 class QuestionRequest(BaseModel):
@@ -33,54 +43,41 @@ class AnswerResponse(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"message": "AI智能客服系统API", "status": "running"}
+    return {"message": "华科制造智能售后客服系统 API 已启动", "version": "2.0.0"}
 
-@app.post("/ask", response_model=AnswerResponse)
+@app.post("/ask", response_model=AnswerResponse, dependencies=[Depends(verify_api_key)])
 async def ask(request: QuestionRequest):
-    """问答接口"""
     try:
-        # 临时设置HyDE开关
-        if not request.use_hyde:
-            original = Config.USE_HYDE
-            Config.USE_HYDE = False
-            result = rag_chain.answer(request.question)
-            Config.USE_HYDE = original
-        else:
-            result = rag_chain.answer(request.question)
-        
+        result = rag_chain.answer(request.question)
         return AnswerResponse(**result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"问答失败: {e}")
+        raise HTTPException(status_code=500, detail="服务内部错误")
 
-@app.post("/upload")
+@app.post("/upload", dependencies=[Depends(verify_api_key)])
 async def upload_document(file: UploadFile = File(...)):
-    """上传文档接口"""
     try:
-        # 保存临时文件
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
             content = await file.read()
             tmp.write(content)
             tmp_path = tmp.name
-        
-        # 处理文档
-        processor = DocumentProcessor(chunk_size=Config.CHUNK_SIZE, chunk_overlap=Config.CHUNK_OVERLAP)
+
+        processor = DocumentProcessor(
+            chunk_size=settings.CHUNK_SIZE,
+            chunk_overlap=settings.CHUNK_OVERLAP
+        )
         docs = processor.process(tmp_path)
-        
-        # 更新向量库
+
         vector_manager = VectorStoreManager()
         vector_manager.create_from_documents(docs)
-        
-        # 清理临时文件
+
         os.unlink(tmp_path)
-        
-        return {
-            "message": f"文档上传成功，已处理 {len(docs)} 个文本块",
-            "chunks": len(docs),
-            "filename": file.filename
-        }
+        logger.info(f"文档 {file.filename} 上传成功，处理 {len(docs)} 个块")
+        return {"message": f"上传成功！已添加 {len(docs)} 个文本块", "filename": file.filename}
     except Exception as e:
+        logger.error(f"上传失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return {"status": "healthy", "model": settings.OLLAMA_MODEL}
