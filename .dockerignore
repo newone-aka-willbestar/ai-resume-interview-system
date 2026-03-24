@@ -1,0 +1,43 @@
+# Python 相关
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# 虚拟环境（如果你在本地创建了）
+venv/
+.venv/
+
+# 环境变量（绝对不能打包进镜像）
+.env
+
+# 向量库数据（本地数据，不需要打包，运行时重新生成或挂载）
+vectorstore/
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git 相关
+.git/
+.gitignore
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# Docker 相关（可选）
+.dockerignore
+docker-compose.yml
+
+# 临时文件
+*.tmp
+temp/
