@@ -1,45 +1,39 @@
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
 from langchain.schema import Document
-from typing import List, Optional
+from typing import List
 from src.config import Config
+import os
 
 class VectorStoreManager:
-    """向量数据库管理器"""
-    
-    def __init__(self, persist_directory: str = Config.VECTORSTORE_PATH):
-        self.persist_directory = persist_directory
-        self.embeddings = OpenAIEmbeddings(
-            model=Config.EMBEDDING_MODEL,
-            openai_api_key=Config.OPENAI_API_KEY
-        )
+    def __init__(self, persist_directory: str = None):
+        self.persist_directory = persist_directory or Config.VECTORSTORE_PATH
+        self.embeddings = HuggingFaceEmbeddings(model_name=Config.EMBEDDING_MODEL)
         self.vectorstore = None
-    
+
     def create_from_documents(self, documents: List[Document]):
-        """从文档创建向量库"""
         self.vectorstore = Chroma.from_documents(
             documents=documents,
             embedding=self.embeddings,
             persist_directory=self.persist_directory
         )
-        self.vectorstore.persist()
         return self.vectorstore
-    
+
     def load_existing(self):
-        """加载已有向量库"""
-        self.vectorstore = Chroma(
-            persist_directory=self.persist_directory,
-            embedding_function=self.embeddings
-        )
+        if os.path.exists(self.persist_directory):
+            self.vectorstore = Chroma(
+                persist_directory=self.persist_directory,
+                embedding_function=self.embeddings
+            )
+        else:
+            # 首次运行时创建空库
+            self.vectorstore = Chroma(embedding_function=self.embeddings, persist_directory=self.persist_directory)
         return self.vectorstore
-    
+
     def get_retriever(self, top_k: int = Config.TOP_K):
-        """获取检索器"""
         if self.vectorstore is None:
             self.load_existing()
-        
-        # 使用MMR（最大边际相关性）检索，避免结果重复
         return self.vectorstore.as_retriever(
-            search_type="mmr",  # 也可用 "similarity"
+            search_type="mmr",
             search_kwargs={"k": top_k, "fetch_k": top_k * 2}
         )
