@@ -1,5 +1,5 @@
 @"
-# ================== 虚拟环境 - 永远不要提交 ==================
+
 .venv/
 venv/
 env/
@@ -16,3 +16,6 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+# VS Code 临时设置（可选）
+.vscode/settings.json
+"@ | Set-Content -Path .gitignore -Encoding UTF8
