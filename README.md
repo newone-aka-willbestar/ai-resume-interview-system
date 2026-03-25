@@ -31,6 +31,10 @@ docker exec -it ollama ollama pull qwen2:7b
 http://localhost:8000/docs
 
 
+# 4.本地部署启动
+uvicorn src.api:app --reload
+streamlit run app.py
+
 #本项目流程
 1.根据ai给出的企业场景打造适应场景的项目
 确定流程与技术栈，并针对技术栈完成requirement和.env
