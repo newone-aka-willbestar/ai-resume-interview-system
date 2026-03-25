@@ -11,11 +11,10 @@ from src.document_loader import DocumentProcessor
 from src.vector_store import VectorStoreManager
 from src.config import settings
 
-# 日志配置
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger("api")
 
-app = FastAPI(title="华科制造智能售后客服系统", version="2.0.0", docs_url="/docs")
+app = FastAPI(title="华科制造智能售后客服系统", version="2.1.0", docs_url="/docs")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,13 +24,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Key 认证（企业安全演示）
 def verify_api_key(x_api_key: Optional[str] = Header(None)):
     if settings.API_KEY and x_api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail="无效的 API Key")
     return True
 
-rag_chain = RAGChain()
+vector_manager = VectorStoreManager()
+
+def get_rag_chain():
+    """每次请求刷新 RAG 链（解决全局单例 Bug）"""
+    return RAGChain(vector_manager=vector_manager)
 
 class QuestionRequest(BaseModel):
     question: str
@@ -43,10 +45,10 @@ class AnswerResponse(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"message": "华科制造智能售后客服系统 API 已启动", "version": "2.0.0"}
+    return {"message": "华科制造智能售后客服系统 API 已启动", "version": "2.1.0"}
 
 @app.post("/ask", response_model=AnswerResponse, dependencies=[Depends(verify_api_key)])
-async def ask(request: QuestionRequest):
+async def ask(request: QuestionRequest, rag_chain: RAGChain = Depends(get_rag_chain)):
     try:
         result = rag_chain.answer(request.question)
         return AnswerResponse(**result)
@@ -56,20 +58,18 @@ async def ask(request: QuestionRequest):
 
 @app.post("/upload", dependencies=[Depends(verify_api_key)])
 async def upload_document(file: UploadFile = File(...)):
+    if file.size > 10 * 1024 * 1024:  # 10MB 限制
+        raise HTTPException(status_code=400, detail="文件过大（最大10MB）")
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
             content = await file.read()
             tmp.write(content)
             tmp_path = tmp.name
 
-        processor = DocumentProcessor(
-            chunk_size=settings.CHUNK_SIZE,
-            chunk_overlap=settings.CHUNK_OVERLAP
-        )
+        processor = DocumentProcessor()
         docs = processor.process(tmp_path)
 
-        vector_manager = VectorStoreManager()
-        vector_manager.create_from_documents(docs)
+        vector_manager.add_documents(docs)   # 关键：使用单例增量添加
 
         os.unlink(tmp_path)
         logger.info(f"文档 {file.filename} 上传成功，处理 {len(docs)} 个块")
@@ -80,4 +80,4 @@ async def upload_document(file: UploadFile = File(...)):
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "model": settings.OLLAMA_MODEL}
+    return {"status": "healthy", "model": settings.OLLAMA_MODEL, "vector_db": vector_manager.get_vectorstore() is not None}

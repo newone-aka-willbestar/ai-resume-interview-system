@@ -1,7 +1,7 @@
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from typing import List
+from typing import List, Optional
 from src.config import settings
 import logging
 import os
@@ -9,34 +9,55 @@ import os
 logger = logging.getLogger(__name__)
 
 class VectorStoreManager:
-    def __init__(self, persist_directory: str = None):
-        self.persist_directory = persist_directory or settings.VECTORSTORE_PATH
+    """单例向量管理器 - 解决上传后不生效的核心问题"""
+    _instance: Optional["VectorStoreManager"] = None
+    _vectorstore: Optional[Chroma] = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialize()
+        return cls._instance
+
+    def _initialize(self):
         self.embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDING_MODEL)
-        self.vectorstore = None
+        self.persist_directory = settings.VECTORSTORE_PATH
+        self._load_existing()
 
-    def create_from_documents(self, documents: List[Document]):
-        self.vectorstore = Chroma.from_documents(
-            documents=documents,
-            embedding=self.embeddings,
-            persist_directory=self.persist_directory
-        )
-        logger.info(f"向量库创建成功，添加 {len(documents)} 个文档块")
-        return self.vectorstore
-
-    def load_existing(self):
-        if os.path.exists(self.persist_directory):
-            self.vectorstore = Chroma(
+    def _load_existing(self):
+        if os.path.exists(self.persist_directory) and any(os.listdir(self.persist_directory)):
+            self._vectorstore = Chroma(
                 persist_directory=self.persist_directory,
                 embedding_function=self.embeddings
             )
+            logger.info(f"✅ 加载现有向量库: {self.persist_directory}")
         else:
-            self.vectorstore = Chroma(embedding_function=self.embeddings, persist_directory=self.persist_directory)
-        return self.vectorstore
+            self._vectorstore = None
+            logger.info("向量库为空，等待首次添加")
 
-    def get_retriever(self, top_k: int = None):
-        if self.vectorstore is None:
-            self.load_existing()
-        return self.vectorstore.as_retriever(
+    def add_documents(self, documents: List[Document]):
+        if not documents:
+            return
+        if self._vectorstore is None:
+            self._vectorstore = Chroma.from_documents(
+                documents=documents,
+                embedding=self.embeddings,
+                persist_directory=self.persist_directory
+            )
+        else:
+            self._vectorstore.add_documents(documents)
+        self._vectorstore.persist()
+        logger.info(f"✅ 添加 {len(documents)} 个文档块到向量库")
+
+    def get_retriever(self):
+        if self._vectorstore is None:
+            self._load_existing()
+        return self._vectorstore.as_retriever(
             search_type="mmr",
-            search_kwargs={"k": top_k or settings.TOP_K, "fetch_k": (top_k or settings.TOP_K) * 2}
+            search_kwargs={"k": settings.TOP_K, "fetch_k": settings.TOP_K * 2}
         )
+
+    def get_vectorstore(self):
+        if self._vectorstore is None:
+            self._load_existing()
+        return self._vectorstore
