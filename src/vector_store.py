@@ -1,3 +1,4 @@
+# src/vector_store.py
 import os
 from typing import List, Optional
 from langchain_chroma import Chroma
@@ -8,6 +9,11 @@ import logging
 from src.config import settings
 
 logger = logging.getLogger(__name__)
+
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"   # 使用国内镜像加速
+os.environ["HTTP_PROXY"] = ""
+os.environ["HTTPS_PROXY"] = ""
+os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 
 class VectorStoreManager:
     """向量存储管理器 - 单例 + 热加载 + 增量添加"""
@@ -50,7 +56,6 @@ class VectorStoreManager:
         else:
             self._vectorstore.add_documents(documents)
 
-        # 新版 Chroma 已自动持久化，无需 persist()
         logger.info(f"✅ 已添加 {len(documents)} 个文档块到向量库")
 
     def get_retriever(self):
