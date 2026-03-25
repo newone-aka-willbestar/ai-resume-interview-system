@@ -7,17 +7,24 @@ from src.hyde import HyDE
 from src.config import settings
 from typing import Dict, Any
 import logging
+import httpx   # 新增
 
 logger = logging.getLogger(__name__)
 
 class RAGChain:
     def __init__(self, vector_manager: VectorStoreManager = None):
         self.vector_manager = vector_manager or VectorStoreManager()
+
+        # 关键修复：强制禁用代理，防止 502
+        http_client = httpx.Client(proxies=None, timeout=60.0)
+
         self.llm = ChatOllama(
             model=settings.OLLAMA_MODEL,
             base_url=settings.OLLAMA_BASE_URL,
-            temperature=settings.TEMPERATURE
+            temperature=settings.TEMPERATURE,
+            http_client=http_client   # ← 新增这一行
         )
+
         self.retriever = self.vector_manager.get_retriever()
         self.hyde = HyDE() if settings.USE_HYDE else None
 
@@ -46,7 +53,6 @@ class RAGChain:
     def _retrieve_with_hyde(self, question: str):
         if not self.hyde or not settings.USE_HYDE:
             return self.retriever.invoke(question)
-        # HyDE 增强
         hypo_doc = self.hyde.generate_hypothetical_document(question)
         hypo_results = self.retriever.invoke(hypo_doc)
         original_results = self.retriever.invoke(question)
