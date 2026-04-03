@@ -12,7 +12,7 @@ from src.config import settings
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="华科制造 AI 智能客服（简化学习版）")
+app = FastAPI(title="华科制造 AI 智能客服")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
