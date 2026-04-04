@@ -1,35 +1,29 @@
 # --- 基础 Web 框架 ---
-fastapi>=0.115.0
-uvicorn[standard]>=0.32.0
-pydantic>=2.9.0
-pydantic-settings>=2.5.0
-python-dotenv>=1.0.1
-python-multipart>=0.0.12
-httpx>=0.27.0
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.9.0
+pydantic-settings==2.5.0
+python-dotenv==1.2.2
+python-multipart==0.0.22
+httpx==0.28.1
 
-# --- LangChain 核心生态 ---
-langchain>=0.3.0
-langchain-core>=0.3.0
-langchain-community>=0.3.0
-langchain-ollama>=0.1.0
-langchain-huggingface>=0.1.0
-langchain-chroma>=0.1.0
-langchain-text-splitters>=0.3.0
+# --- LangChain 0.3 稳定生态 (禁止升级到 1.x) ---
+langchain==0.3.7
+langchain-core==0.3.15
+langchain-community==0.3.7
+langchain-ollama==0.1.0
+langchain-huggingface==1.2.1
+langchain-chroma==0.1.0
+langchain-text-splitters==0.3.0
+langsmith==0.1.147
 
-# --- 核心增强：混合检索与重排序 (新增) ---
-# BM25Retriever 必须依赖此库
-rank_bm25>=0.2.2 
+# --- 检索增强相关 ---
+rank_bm25==0.2.2 
+flashrank==0.2.10
+pymupdf4llm==1.27.2.2
+pymupdf==1.24.11
+pypdf==5.0.0
 
-flashrank>=0.2.0
-
-# --- 文档处理与 PDF 解析 (新增) ---
-# 核心：比 pypdf 更强的布局识别和表格还原
-pymupdf4llm>=0.0.12
-# 基础 PDF 支持
-pypdf>=5.0.0
-pymupdf>=1.24.0
-
-# --- 向量库与嵌入模型 ---
-chromadb>=0.5.0
-sentence-transformers>=3.0.0
-
+# --- 向量存储 ---
+chromadb==1.5.5
+sentence-transformers==3.1.1

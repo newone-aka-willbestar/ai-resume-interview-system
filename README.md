@@ -57,7 +57,7 @@ ollama pull qwen2:7b
 pip install -r requirements.txt
 
 ### 4.系统评测
-python test/evaluate.py
+python evaluate.py
 
 ### 5. 启动服务
 
