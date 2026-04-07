@@ -102,18 +102,6 @@ graph TD
     G --> H[Streamlit 界面展示]
     G --> I[点赞/点踩反馈]
 
-## 📁 项目结构
-.
-├── app.py                    # Streamlit 前端入口
-├── src/
-│   └── api.py                # FastAPI 后端接口
-├── chroma_db/                # ChromaDB 向量数据库（持久化）
-├── models/bge-small-zh-v1.5/ # 本地预下载 Embedding 模型
-├── .env                      # 环境变量
-├── Dockerfile                # Docker 构建文件
-├── docker-compose.yml        # Docker Compose 配置
-├── requirements.txt          # Python 依赖
-└── README.md                 # 本文档
 
 ## 🎥 项目演示
 
