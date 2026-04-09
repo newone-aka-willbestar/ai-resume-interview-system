@@ -37,7 +37,7 @@
 | **向量数据库**| ChromaDB                                       | 本地持久化向量存储            |
 | **Embedding** | BAAI/bge-small-zh-v1.5                         | 中文语义向量化                |
 | **RAG 框架**  | LangChain (langchain-classic)                  | 确保版本兼容性                |
-| **文档处理**  | PyPDFLoader + RecursiveCharacterTextSplitter   | PDF 解析与智能分块            |
+| **文档处理**  | pymupdf4llm + RecursiveCharacterTextSplitter   | PDF 解析与智能分块            |
 | **部署**      | Docker + docker-compose                        | 一键容器化部署                |
 
 ## 🚀 快速开始

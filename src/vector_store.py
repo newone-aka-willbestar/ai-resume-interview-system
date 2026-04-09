@@ -17,7 +17,6 @@ class VectorStore:
         local_model_path = os.path.join(base_dir, "models", "bge-small-zh-v1.5")
         
         # 2. 检查模型关键文件是否存在
-        # 重点检查 vocab.txt，这是之前报错 NoneType 的根源
         is_ready = os.path.exists(local_model_path) and os.path.isfile(os.path.join(local_model_path, "vocab.txt"))
 
         if is_ready:
